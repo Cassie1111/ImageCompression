@@ -322,6 +322,71 @@ CAppCompress::Node* buildHuffmanTree(char data[], int freq[], int size) {
     return extractMin(minHeap); 
 }
 
+void CAppCompress::traverse(CAppCompress::Node* node, string* code_dict, code)
+{
+    if (node->left == NULL && node->right == NULL)
+    {
+        code_dict[node->ch] = code;
+    }
+    else
+    {
+        traverse(node->left, code_dict, code + '0');
+        traverse(node->right, code_dict, code + '1');
+    }
+}
+
+// Huffman Encoding using the Huffman tree built above
+void CAppCompress::HuffmanEncode(char data[], int freq[], int size) {
+    int i, j;
+    Node* root = buildHuffmanTree(data, freq, size); 
+  
+    // the encoding string
+    
+    encoded_sequence[0] = encoded_sequence[1] = encoded_sequence[2] = "";
+    
+    // the coding dictionary
+    for (i = 0; i < 256; i++)
+        code_dict[i] = '';
+    
+    
+   
+    traverse(root, code_dict, "");
+    
+    for (j = 0; j < height; j++) {
+        for (i = 0; i < width; i++) {
+            encoded_sequence[0] += code_dict[b[i + j * width]];
+            encoded_sequence[1] += code_dict[b[i + j * width]];
+            encoded_sequence[2] += code_dict[b[i + j * width]];
+        }
+    }   
+}
+
+
+void CAppCompress::HuffmanDecode(CAppCompress::Node* root, string* encoded_sequence; unsigned char** data) {
+    int i, j;
+    Node *temp = root;
+    
+    for (i = 0; i < 3; i++) {
+        for (i = 0; i < encoded_sequence[i].size(); i++) {
+            if (isLeaf(temp)) {
+                data[i].append(temp->ch);
+                temp = root;
+                
+            } else {
+                if (encoded_sequence[i][j] == '0') {
+                    temp = temp->left;
+                } else (encoded_sequence[i][j] == '1') {
+                    temp = temp->right;
+                }
+            } 
+        }
+    }
+}
+
+void CAppCompress::DiffDecode() {
+
+}
+
 
 
 void CAppCompress::HuffmanTree(int *hist) {
