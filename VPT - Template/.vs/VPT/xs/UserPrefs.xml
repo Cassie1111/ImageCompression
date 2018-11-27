@@ -1,0 +1,16 @@
+﻿<Properties>
+  <MonoDevelop.Ide.Workbench ActiveDocument="App/AppCompress.cpp">
+    <Files>
+      <File FileName="App/AppCompress.cpp" Line="224" Column="2" />
+      <File FileName="App/AppCompress.h" Line="5" Column="20" />
+      <File FileName="App/AppQuantize.cpp" Line="1" Column="1" />
+      <File FileName="App/AppQuantize.h" Line="1" Column="1" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|Win32" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MultiItemStartupConfigurations />
+</Properties>

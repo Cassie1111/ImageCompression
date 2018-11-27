@@ -1,0 +1,4 @@
+﻿  AppCompress.cpp
+LINK : warning LNK4075: 忽略“/INCREMENTAL”(由于“/PROFILE”规范)
+AppCompress.obj : warning LNK4075: 忽略“/EDITANDCONTINUE”(由于“/OPT:REF”规范)
+  VPT.vcxproj -> C:\Users\samsung\Desktop\Program Assignment\Program Assignment\Programming Assignment\VPT - Template\Debug\VPT.exe
