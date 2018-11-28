@@ -1,20 +1,25 @@
 #pragma once
 #include "../processing.h"
+#include <string>
 
-class CAppCompress: public CProcessing
+using namespace std;
+
+class CAppCompress : public CProcessing
 {
 public:
     // Add variables here
     unsigned char *b;
     unsigned char *g;
     unsigned char *r;
-    
+
     string encoded_sequence[3];
-    
-    string code_dict[256];
+
+    // for 3 channel, different value range[-255, 255]
+    string code_dict[3][511];
+
     struct Node {
         unsigned int freq;
-        unsigned char ch;
+        int diff;
         Node *left, *right;
     };
 
@@ -30,14 +35,16 @@ public:
     ~CAppCompress(void);
     // Add methods here
 
-    unsigned char *Compress(int &cDataSize) ;
-    void Decompress(unsigned char *compressedData, int cDataSize, unsigned char *deCompressedData) ;
+    unsigned char *Compress(int &cDataSize);
+    void Decompress(unsigned char *compressedData, int cDataSize, unsigned char *deCompressedData);
 
     void GetRGBArray();
     void getPrediction(unsigned char *channel, unsigned char *prediction);
-    void getFilteredImage(unsigned char *filtered_b, unsigned char *filtered_g, unsigned char *filtered_r);
-    void countIntensity(unsigned char *channel);
-    Node* newNode(unsigned char data, unsigned freq);
+    void getFilteredImage(int *filtered_b, int *filtered_g, int *filtered_r);
+    void countDiffIntensity(int *filtered_b, int *filtered_g, int *filtered_r, int *diff_b, int *diff_g, int *diff_r);
+    int getDiffCount(int *diff);
+    void splitDiffAndFreq(int *diff, int *data, int* freq);
+    Node* newNode(int data, unsigned freq);
     MinHeap* createMinHeap(unsigned size);
     void swapHeapNode(Node** a, Node** b);
     void heapify(MinHeap* heap, int idx);
@@ -45,17 +52,18 @@ public:
     void insertMinHeap(MinHeap* minHeap, Node* node);
     void buildMinHeap(MinHeap* minHeap);
     int CAppCompress::isLeaf(Node* root);
-    MinHeap* createAndBuildMinHeap(char data[], int freq[], int size);
+    MinHeap* createAndBuildMinHeap(int data[], int freq[], int size);
     int isSizeOne(struct MinHeap* minHeap);
-    Node* buildHuffmanTree(char data[], int freq[], int size);
-    void traverse(Node* node, string* code_dict, code);
-    void HuffmanEncode(char data[], int freq[], int size);
-    void HuffmanDecode(Node* root, string* encoded_sequence; unsigned char** data);
+    Node* buildHuffmanTree(int data[], int freq[], int size);
+    void traverse(Node* node, string* code_dict, string code);
+    void HuffmanEncode();
+    void convertDecodedStringToBytes(string encoded_sequence, unsigned char *encoded_data);
+    void HuffmanDecode(Node* root, string* encoded_sequence, int** data);
     void CAppCompress::DiffDecode();
     void HuffmanTree(int *hist);
 
 public:
-    void CustomInit(CView *pView) ;
-    void Process(void) ;
-    void CustomFinal(void) ;
+    void CustomInit(CView *pView);
+    void Process(void);
+    void CustomFinal(void);
 };
