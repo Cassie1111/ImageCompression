@@ -38,12 +38,15 @@ public:
     unsigned char *Compress(int &cDataSize);
     void Decompress(unsigned char *compressedData, int cDataSize, unsigned char *deCompressedData);
 
-    void GetRGBArray();
+    // compression
+    void getRGBChannel();
     void getPrediction(unsigned char *channel, unsigned char *prediction);
     void getFilteredImage(int *filtered_b, int *filtered_g, int *filtered_r);
     void countDiffIntensity(int *filtered_b, int *filtered_g, int *filtered_r, int *diff_b, int *diff_g, int *diff_r);
     int getDiffCount(int *diff);
     void splitDiffAndFreq(int *diff, int *data, int* freq);
+    
+    // Huffman coding
     Node* newNode(int data, unsigned freq);
     MinHeap* createMinHeap(unsigned size);
     void swapHeapNode(Node** a, Node** b);
@@ -58,9 +61,21 @@ public:
     void traverse(Node* node, string* code_dict, string code);
     void HuffmanEncode();
     void convertDecodedStringToBytes(string encoded_sequence, unsigned char *encoded_data);
-    void HuffmanDecode(Node* root, string* encoded_sequence, int** data);
+    unsigned char* convertIntToUnChar(int data);
+    void copyEncodedData(int encoded_data_b_count, int encoded_data_g_count, int encoded_data_r_count,
+        unsigned char* compressedData, unsigned char* encoded_data_b, unsigned char* encoded_data_g, unsigned char* encoded_data_r);
+    
+    // decompression
+    int convertUnCharToInt(unsigned char* data_buf);
+    void getFilteredChannel(unsigned char* compressedData, unsigned char* filtered_b, unsigned char* filtered_g, unsigned char* filtered_r);
+    int getFilteredChannelCount(unsigned char* compressedData, int index);
+    
+    
+    //void HuffmanDecode(Node* root, string* encoded_sequence, int** data);
     void CAppCompress::DiffDecode();
-    void HuffmanTree(int *hist);
+    
+
+
 
 public:
     void CustomInit(CView *pView);
