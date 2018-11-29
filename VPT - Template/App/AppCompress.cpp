@@ -173,15 +173,15 @@ void CAppCompress::getFilteredImage(int *filtered_b, int *filtered_g, int *filte
     int dataSize = width * height;
     int i, j;
 
-    unsigned char *prediction_b = new unsigned char[dataSize];
-    unsigned char *prediction_g = new unsigned char[dataSize];
-    unsigned char *prediction_r = new unsigned char[dataSize];
+    this->prediction_b = new unsigned char[dataSize];
+    this->prediction_g = new unsigned char[dataSize];
+    this->prediction_r = new unsigned char[dataSize];
 
     getRGBChannel();
 
-    getPrediction(this->b, prediction_b);
-    getPrediction(this->g, prediction_g);
-    getPrediction(this->r, prediction_r);
+    getPrediction(this->b, this->prediction_b);
+    getPrediction(this->g, this->prediction_g);
+    getPrediction(this->r, this->prediction_r);
 
     for (j = 0; j < height; j++) {
         for (i = 0; i < width; i++) {
@@ -426,9 +426,9 @@ void CAppCompress::HuffmanEncode() {
     splitDiffAndFreq(diff_r, data_r, freq_r);
     
     // build Huffman tree
-    Node* root_b = buildHuffmanTree(data_b, freq_b, b_count);
-    Node* root_g = buildHuffmanTree(data_g, freq_g, g_count);
-    Node* root_r = buildHuffmanTree(data_r, freq_r, r_count);
+    this->root_b = buildHuffmanTree(data_b, freq_b, b_count);
+    this->root_g = buildHuffmanTree(data_g, freq_g, g_count);
+    this->root_r = buildHuffmanTree(data_r, freq_r, r_count);
 
     // the encoding string
     encoded_sequence[0] = encoded_sequence[1] = encoded_sequence[2] = "";
@@ -500,12 +500,12 @@ void CAppCompress::copyEncodedData(int encoded_data_b_count, int encoded_data_g_
         compressedData[i] = b_count_buf[i];
     }
 
-    for (i = 4; i < 8; i++) {
-        compressedData[i] = g_count_buf[i];
+    for (i = 0; i < 4; i++) {
+        compressedData[4 + i] = g_count_buf[i];
     }
 
-    for (i = 8; i < 12; i++) {
-        compressedData[i] = r_count_buf[i];
+    for (i = 0; i < 4; i++) {
+        compressedData[8 + i] = r_count_buf[i];
     }
 
     // store encoded data into compressedData
@@ -523,30 +523,6 @@ void CAppCompress::copyEncodedData(int encoded_data_b_count, int encoded_data_g_
 
 
 }
-
-//void cappcompress::huffmandecode(cappcompress::node* root, string* encoded_sequence, int** data) {
-//  int i, j;
-//  node *temp = root;
-//
-//  for (i = 0; i < 3; i++) {
-//      for (j = 0; j < encoded_sequence[i].size(); i++) {
-//          if (isleaf(temp)) {
-//              data[i][j].append(int(temp->diff));
-//              temp = root;
-//
-//          }
-//          else {
-//              if (encoded_sequence[i][j] == '0') {
-//                  temp = temp->left;
-//              }
-//              else {
-//                  temp = temp->right;
-//              }
-//          }
-//      }
-//  }
-//}
-
 
 
 void CAppCompress::DiffDecode() {
@@ -584,7 +560,8 @@ unsigned char *CAppCompress::Compress(int &cDataSize) {
     // You can modify anything within this function, but you cannot change the function prototype.
     unsigned char *compressedData;
 
-    cDataSize = encoded_data_b_count + encoded_data_g_count + encoded_data_r_count;    // You need to determine the size of the compressed data. 
+    // 12 bytes are used to store counts for R,G,B channel
+    cDataSize = 12 + encoded_data_b_count + encoded_data_g_count + encoded_data_r_count;     
                                        // Here, we simply set it to the size of the original image
     compressedData = new unsigned char[cDataSize]; // As an example, we just copy the original data as compressedData.
     copyEncodedData(encoded_data_b_count, encoded_data_g_count, encoded_data_r_count, compressedData, encoded_data_b, encoded_data_g, encoded_data_r);
@@ -612,25 +589,94 @@ int CAppCompress::getFilteredChannelCount(unsigned char* compressedData, int ind
 
     return count;
 }
-void CAppCompress::getFilteredChannel(unsigned char* compressedData, unsigned char* filtered_b, unsigned char* filtered_g, unsigned char* filtered_r) {
+
+void CAppCompress::HuffmanDecode(Node* root, unsigned char* encodedData, int size, int* decodedDiffData) {
+    int i, j;
+    int dataSize = width * height;
+    int idx = 0;
+    Node* currentNode = root;
+
+    for (i = 0; i < size; i++) {
+        for (j = 0; j < 8; j++) {
+            // max idx = the decoded data size
+            if (idx == dataSize) {
+                break;
+            }
+
+            // first left shift j bits, and right shift 7 bits
+            // get the current code 1 or 0
+            unsigned char code = (encodedData[i] << j) >> 7;
+            if (code == 1) {
+                currentNode = currentNode->right;
+            }
+            else {
+                currentNode = currentNode->left;
+            }
+
+            if (isLeaf(currentNode)) {
+                decodedDiffData[idx] = currentNode->diff;
+                idx += 1;
+                currentNode = root;
+            }
+        }
+    }
+}
+
+void CAppCompress::getFilteredChannel(unsigned char* compressedData, int* filtered_b, int* filtered_g, int* filtered_r) {
     int i, j;
     int b_count = getFilteredChannelCount(compressedData, 0);
     int g_count = getFilteredChannelCount(compressedData, 4);
     int r_count = getFilteredChannelCount(compressedData, 8);
 
+    // get encoded data for b, g, r channel
+    unsigned char* encoded_b = new unsigned char[b_count];
+    unsigned char* encoded_g = new unsigned char[g_count];
+    unsigned char* encoded_r = new unsigned char[r_count];
 
+    memcpy(encoded_b, compressedData + 12, b_count);
+    memcpy(encoded_g, compressedData + 12 + b_count, g_count);
+    memcpy(encoded_r, compressedData + 12 + b_count + g_count, r_count);
 
-
+    // decoded the bit sequences
+    // get filterd channel
+    HuffmanDecode(this->root_b, encoded_b, b_count, filtered_b);
+    HuffmanDecode(this->root_g, encoded_g, g_count, filtered_g);
+    HuffmanDecode(this->root_r, encoded_r, r_count, filtered_r);
 }
 
+void CAppCompress::getUncompressedData(int* filtered, unsigned char* prediction, unsigned char* uncompressedData) {
+    int i, j;
+
+    for (j = 0; j < height; j++) {
+        for (i = 0; i < width; i++) {
+            int temp = filtered[i + j * width] + prediction[i + j * width];
+
+            uncompressedData[i + j * width] = (unsigned char) temp;
+        }
+    }
+}
 // This function takes in compressedData with size cDatasize, and decompresses it into 8-8-8 image.
 // The decompressed image data should be stored into the uncompressedData buffer, with 8-8-8 image format
 void CAppCompress::Decompress(unsigned char *compressedData, int cDataSize, unsigned char *uncompressedData) {
+    int i, j;
+    int dataSize = width * height;
+    int* filtered_b = new int[dataSize];
+    int* filtered_g = new int[dataSize];
+    int* filtered_r = new int[dataSize];
 
+    getFilteredChannel(compressedData, filtered_b, filtered_g, filtered_r);
 
+    getUncompressedData(filtered_b, this->prediction_b, this->b);
+    getUncompressedData(filtered_g, this->prediction_g, this->g);
+    getUncompressedData(filtered_r, this->prediction_r, this->r);
 
-    // You can modify anything within this function, but you cannot change the function prototype.
-    memcpy(uncompressedData, compressedData, cDataSize); // Here, we simply copy the compressedData into the output buffer.
+    for (j = 0; j < height; j++) {
+        for (i = 0; i < width; i++) {
+            uncompressedData[(i + j * width) * 3 + 0] = this->b[i + j * width];
+            uncompressedData[(i + j * width) * 3 + 1] = this->g[i + j * width];
+            uncompressedData[(i + j * width) * 3 + 2] = this->r[i + j * width];
+        }
+    }
 }
 
 

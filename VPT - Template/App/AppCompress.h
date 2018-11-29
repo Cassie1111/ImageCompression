@@ -12,6 +12,11 @@ public:
     unsigned char *g;
     unsigned char *r;
 
+    // the prediction value for each channel
+    unsigned char *prediction_b;
+    unsigned char *prediction_g;
+    unsigned char *prediction_r;
+
     string encoded_sequence[3];
 
     // for 3 channel, different value range[-255, 255]
@@ -29,6 +34,10 @@ public:
 
         Node** array;
     };
+
+    Node *root_b;
+    Node *root_g;
+    Node *root_r;
 
 public:
     CAppCompress(void);
@@ -67,11 +76,12 @@ public:
     
     // decompression
     int convertUnCharToInt(unsigned char* data_buf);
-    void getFilteredChannel(unsigned char* compressedData, unsigned char* filtered_b, unsigned char* filtered_g, unsigned char* filtered_r);
+    void getFilteredChannel(unsigned char* compressedData, int* filtered_b, int* filtered_g, int* filtered_r);
     int getFilteredChannelCount(unsigned char* compressedData, int index);
+    void HuffmanDecode(Node* root, unsigned char* encodedData, int size, int* decodedDiffData);
+    void getUncompressedData(int* filtered, unsigned char* prediction, unsigned char* uncompressedData);
     
     
-    //void HuffmanDecode(Node* root, string* encoded_sequence, int** data);
     void CAppCompress::DiffDecode();
     
 
