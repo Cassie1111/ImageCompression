@@ -12,11 +12,6 @@ public:
     unsigned char *g;
     unsigned char *r;
 
-    // the prediction value for each channel
-    unsigned char *prediction_b;
-    unsigned char *prediction_g;
-    unsigned char *prediction_r;
-
     string encoded_sequence[3];
 
     // for 3 channel, different value range[-255, 255]
@@ -54,7 +49,7 @@ public:
     void countDiffIntensity(int *filtered_b, int *filtered_g, int *filtered_r, int *diff_b, int *diff_g, int *diff_r);
     int getDiffCount(int *diff);
     void splitDiffAndFreq(int *diff, int *data, int* freq);
-    
+
     // Huffman coding
     Node* newNode(int data, unsigned freq);
     MinHeap* createMinHeap(unsigned size);
@@ -73,19 +68,13 @@ public:
     unsigned char* convertIntToUnChar(int data);
     void copyEncodedData(int encoded_data_b_count, int encoded_data_g_count, int encoded_data_r_count,
         unsigned char* compressedData, unsigned char* encoded_data_b, unsigned char* encoded_data_g, unsigned char* encoded_data_r);
-    
+
     // decompression
     int convertUnCharToInt(unsigned char* data_buf);
     void getFilteredChannel(unsigned char* compressedData, int* filtered_b, int* filtered_g, int* filtered_r);
     int getFilteredChannelCount(unsigned char* compressedData, int index);
     void HuffmanDecode(Node* root, unsigned char* encodedData, int size, int* decodedDiffData);
-    void getUncompressedData(int* filtered, unsigned char* prediction, unsigned char* uncompressedData);
-    
-    
-    void CAppCompress::DiffDecode();
-    
-
-
+    void getUncompressedData(int* filtered, unsigned char* uncompressedData);
 
 public:
     void CustomInit(CView *pView);

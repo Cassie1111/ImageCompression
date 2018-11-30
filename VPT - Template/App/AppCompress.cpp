@@ -133,26 +133,6 @@ unsigned char predDiff(unsigned char *buf, int x, int y, int width, int height, 
     return (unsigned char)pred;
 }
 
-void CAppCompress::getPrediction(unsigned char *channel, unsigned char *prediction) {
-    int i, j;
-
-    prediction[0] = channel[0];
-
-    for (i = 1; i < width; i++) {
-        prediction[i] = channel[i - 1];
-    }
-
-    for (j = 1; j < height; j++) {
-        prediction[j * width] = channel[(j - 1) * width];
-    }
-
-    for (j = 1; j < height; j++) {
-        for (i = 1; i < width; i++) {
-            prediction[i + j * width] = (channel[(i - 1) + j * width] + channel[i + (j - 1) * width]) / 2;
-        }
-    }
-}
-
 void CAppCompress::getRGBChannel() {
     int i, j;
     int dataSize = width * height;
@@ -172,22 +152,43 @@ void CAppCompress::getRGBChannel() {
 void CAppCompress::getFilteredImage(int *filtered_b, int *filtered_g, int *filtered_r) {
     int dataSize = width * height;
     int i, j;
-
-    this->prediction_b = new unsigned char[dataSize];
-    this->prediction_g = new unsigned char[dataSize];
-    this->prediction_r = new unsigned char[dataSize];
+    int pred_b, pred_g, pred_r;
 
     getRGBChannel();
 
-    getPrediction(this->b, this->prediction_b);
-    getPrediction(this->g, this->prediction_g);
-    getPrediction(this->r, this->prediction_r);
+    //getPrediction(this->b, this->prediction_b);
+    //getPrediction(this->g, this->prediction_g);
+    //getPrediction(this->r, this->prediction_r);
 
     for (j = 0; j < height; j++) {
         for (i = 0; i < width; i++) {
-            filtered_b[i + j * width] = b[i + j * width] - prediction_b[i + j * width];
-            filtered_g[i + j * width] = g[i + j * width] - prediction_g[i + j * width];
-            filtered_r[i + j * width] = r[i + j * width] - prediction_r[i + j * width];
+            // the first pixel
+            if (i == 0 && j == 0) {
+                pred_b = 0;
+                pred_g = 0;
+                pred_r = 0;
+            }
+            // the first row
+            else if (i > 0 && j == 0) {
+                pred_b = b[i-1];
+                pred_g = g[i-1];
+                pred_r = r[i-1];
+            }
+            // the first column
+            else if (i == 0 && j > 0) {
+                pred_b = b[(j - 1) * width];
+                pred_g = g[(j - 1) * width];
+                pred_r = r[(j - 1) * width];
+            }
+            else {
+                pred_b = (b[(i - 1) + j * width] + b[i + (j - 1) * width]) / 2;
+                pred_g = (g[(i - 1) + j * width] + g[i + (j - 1) * width]) / 2;
+                pred_r = (r[(i - 1) + j * width] + r[i + (j - 1) * width]) / 2;
+            }
+
+            filtered_b[i + j * width] = b[i + j * width] - pred_b;
+            filtered_g[i + j * width] = g[i + j * width] - pred_g;
+            filtered_r[i + j * width] = r[i + j * width] - pred_r;
         }
     }
 }
@@ -412,7 +413,7 @@ void CAppCompress::HuffmanEncode() {
     int b_count = getDiffCount(diff_b);
     int g_count = getDiffCount(diff_g);
     int r_count = getDiffCount(diff_r);
-    
+
     int *data_b = new int[b_count];
     int *data_g = new int[g_count];
     int *data_r = new int[r_count];
@@ -424,7 +425,7 @@ void CAppCompress::HuffmanEncode() {
     splitDiffAndFreq(diff_b, data_b, freq_b);
     splitDiffAndFreq(diff_g, data_g, freq_g);
     splitDiffAndFreq(diff_r, data_r, freq_r);
-    
+
     // build Huffman tree
     this->root_b = buildHuffmanTree(data_b, freq_b, b_count);
     this->root_g = buildHuffmanTree(data_g, freq_g, g_count);
@@ -470,24 +471,29 @@ void CAppCompress::convertDecodedStringToBytes(string encoded_sequence, unsigned
             encoded_data[idx] = data;
             data = 0;
             idx += 1;
-        }else {
+        }
+        else {
             bit_num -= 1;
         }
+    }
+
+    if (bit_num != 7) {
+        encoded_data[idx] = data;
     }
 }
 
 unsigned char* CAppCompress::convertIntToUnChar(int data) {
     int i;
     unsigned char* data_buf = new unsigned char[4];
-    
+
     for (i = 0; i < 4; i++) {
-        data_buf[i] = data >> (4 - i - 1) * 8 & 0xff;
+        data_buf[i] = (data >> ((4 - i - 1) * 8)) & 0xff;
     }
 
     return data_buf;
 }
 
-void CAppCompress::copyEncodedData(int encoded_data_b_count, int encoded_data_g_count, int encoded_data_r_count, 
+void CAppCompress::copyEncodedData(int encoded_data_b_count, int encoded_data_g_count, int encoded_data_r_count,
     unsigned char* compressedData, unsigned char* encoded_data_b, unsigned char* encoded_data_g, unsigned char* encoded_data_r) {
     int i;
 
@@ -525,16 +531,11 @@ void CAppCompress::copyEncodedData(int encoded_data_b_count, int encoded_data_g_
 }
 
 
-void CAppCompress::DiffDecode() {
-
-}
-
-
 // This function compresses input 24-bit image (8-8-8 format, in pInput pointer).
 // This function shall allocate storage space for compressedData, and return it as a pointer.
 // The input reference variable cDataSize, is also serve as an output variable to indicate the size (in bytes) of the compressed data.
 unsigned char *CAppCompress::Compress(int &cDataSize) {
-    int i; 
+    int i;
     HuffmanEncode();
 
     int encoded_sequence_b_size = encoded_sequence[0].size();
@@ -561,8 +562,8 @@ unsigned char *CAppCompress::Compress(int &cDataSize) {
     unsigned char *compressedData;
 
     // 12 bytes are used to store counts for R,G,B channel
-    cDataSize = 12 + encoded_data_b_count + encoded_data_g_count + encoded_data_r_count;     
-                                       // Here, we simply set it to the size of the original image
+    cDataSize = 12 + encoded_data_b_count + encoded_data_g_count + encoded_data_r_count;
+    // Here, we simply set it to the size of the original image
     compressedData = new unsigned char[cDataSize]; // As an example, we just copy the original data as compressedData.
     copyEncodedData(encoded_data_b_count, encoded_data_g_count, encoded_data_r_count, compressedData, encoded_data_b, encoded_data_g, encoded_data_r);
 
@@ -605,7 +606,7 @@ void CAppCompress::HuffmanDecode(Node* root, unsigned char* encodedData, int siz
 
             // first left shift j bits, and right shift 7 bits
             // get the current code 1 or 0
-            unsigned char code = (encodedData[i] << j) >> 7;
+            unsigned char code = (encodedData[i] >> (7 - j)) & 0x1;
             if (code == 1) {
                 currentNode = currentNode->right;
             }
@@ -644,14 +645,28 @@ void CAppCompress::getFilteredChannel(unsigned char* compressedData, int* filter
     HuffmanDecode(this->root_r, encoded_r, r_count, filtered_r);
 }
 
-void CAppCompress::getUncompressedData(int* filtered, unsigned char* prediction, unsigned char* uncompressedData) {
+void CAppCompress::getUncompressedData(int* filtered, unsigned char* uncompressedData) {
     int i, j;
 
-    for (j = 0; j < height; j++) {
-        for (i = 0; i < width; i++) {
-            int temp = filtered[i + j * width] + prediction[i + j * width];
+    uncompressedData[0] = filtered[0];
 
-            uncompressedData[i + j * width] = (unsigned char) temp;
+    // the first row
+    for (i = 1; i < width; i++) {
+        int temp = uncompressedData[i - 1] + filtered[i];
+        uncompressedData[i] = (unsigned char)temp;
+    }
+
+    // the first column
+    for (j = 1; j < height; j++) {
+        int temp = filtered[j * width] + uncompressedData[(j - 1) * width];
+        uncompressedData[j * width] = (unsigned char)temp;
+    }
+
+    for (j = 1; j < height; j++) {
+        for (i = 1; i < width; i++) {
+            int temp = (uncompressedData[(i - 1) + j * width] + uncompressedData[i + (j - 1) * width]) / 2 + filtered[i + j * width];
+
+            uncompressedData[i + j * width] = (unsigned char)temp;
         }
     }
 }
@@ -666,9 +681,9 @@ void CAppCompress::Decompress(unsigned char *compressedData, int cDataSize, unsi
 
     getFilteredChannel(compressedData, filtered_b, filtered_g, filtered_r);
 
-    getUncompressedData(filtered_b, this->prediction_b, this->b);
-    getUncompressedData(filtered_g, this->prediction_g, this->g);
-    getUncompressedData(filtered_r, this->prediction_r, this->r);
+    getUncompressedData(filtered_b, this->b);
+    getUncompressedData(filtered_g, this->g);
+    getUncompressedData(filtered_r, this->r);
 
     for (j = 0; j < height; j++) {
         for (i = 0; i < width; i++) {
